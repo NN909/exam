@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>IT試験対策 2026</title>
+
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #111111;
+      --card-color: #f5f5f5;
+      --border-color: #dddddd;
+      --accent-color: #2563eb;
+      --danger-color: #dc2626;
+    }
+
+    body.dark {
+      --bg-color: #121212;
+      --text-color: #f0f0f0;
+      --card-color: #1e1e1e;
+      --border-color: #333333;
+      --accent-color: #60a5fa;
+      --danger-color: #f87171;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background-color: var(--bg-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px;
+    }
+
+    h1 {
+      margin: 0 0 12px 0;
+      font-size: 22px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input[type="text"],
+    select {
+      flex: 1;
+      min-width: 120px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background-color: var(--card-color);
+      color: var(--text-color);
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      background-color: var(--accent-color);
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .theme-btn {
+      background-color: #555555;
+    }
+
+    .container {
+      padding: 12px;
+    }
+
+    .stats {
+      margin-bottom: 12px;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .card {
+      background-color: var(--card-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .category {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .word {
+      font-size: 22px;
+      font-weight: bold;
+      margin: 10px 0;
+      word-break: break-word;
+    }
+
+    .description {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border-color);
+      line-height: 1.6;
+      display: none;
+      white-space: pre-wrap;
+    }
+
+    .show {
+      display: block;
+    }
+
+    .toggle-desc {
+      margin-top: 8px;
+      width: 100%;
+    }
+
+    .fuan-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .fuan-on {
+      color: var(--danger-color);
+      font-weight: bold;
+    }
+
+    @media (max-width: 600px) {
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>IT試験対策 2026</h1>
+
+  <div class="toolbar">
+    <input type="text" id="searchBox" placeholder="用語検索">
+
+    <select id="categoryFilter">
+      <option value="">すべてのカテゴリ</option>
+    </select>
+
+    <button id="allBtn">全件</button>
+    <button id="fuanBtn">不安のみ</button>
+    <button class="theme-btn" id="themeBtn">🌙 Dark</button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="stats" id="stats"></div>
+  <div id="wordList"></div>
+</div>
+
+<script>
+  const CSV_FILE = 'exam2026.csv';
+
+  let allData = [];
+  let showFuanOnly = false;
+
+  const wordList = document.getElementById('wordList');
+  const searchBox = document.getElementById('searchBox');
+  const categoryFilter = document.getElementById('categoryFilter');
+  const stats = document.getElementById('stats');
+  const themeBtn = document.getElementById('themeBtn');
+
+  async function loadCSV() {
+    const response = await fetch(CSV_FILE + '?v=' + new Date().getTime());
+    const text = await response.text();
+
+    const rows = text.trim().split('\n');
+    const headers = rows[0].split(',');
+
+    allData = rows.slice(1).map(row => {
+      const cols = parseCSVRow(row);
+
+      return {
+        no: cols[0]?.trim(),
+        word: cols[1]?.trim(),
+        category: cols[2]?.trim(),
+        description: cols[3]?.trim()
+      };
+    });
+
+    buildCategoryFilter();
+    render();
+  }
+
+  function parseCSVRow(row) {
+    const result = [];
+    let current = '';
+    let insideQuotes = false;
+
+    for (let i = 0; i < row.length; i++) {
+      const char = row[i];
+
+      if (char === '"') {
+        insideQuotes = !insideQuotes;
+      } else if (char === ',' && !insideQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    result.push(current);
+    return result;
+  }
+
+  function buildCategoryFilter() {
+    const categories = [...new Set(allData.map(x => x.category))].sort();
+
+    categoryFilter.innerHTML = '<option value="">すべてのカテゴリ</option>';
+
+    categories.forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      categoryFilter.appendChild(option);
+    });
+  }
+
+  function isFuan(no) {
+    return localStorage.getItem('fuan_' + no) === 'true';
+  }
+
+  function setFuan(no, value) {
+    localStorage.setItem('fuan_' + no, value);
+  }
+
+  function render() {
+    const keyword = searchBox.value.toLowerCase();
+    const category = categoryFilter.value;
+
+    let filtered = allData.filter(item => {
+      const matchKeyword =
+        item.word.toLowerCase().includes(keyword) ||
+        item.description.toLowerCase().includes(keyword);
+
+      const matchCategory =
+        category === '' || item.category === category;
+
+      const matchFuan =
+        !showFuanOnly || isFuan(item.no);
+
+      return matchKeyword && matchCategory && matchFuan;
+    });
+
+    stats.innerHTML = `表示件数：${filtered.length} / ${allData.length}`;
+
+    wordList.innerHTML = '';
+
+    filtered.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const checked = isFuan(item.no) ? 'checked' : '';
+      const fuanClass = isFuan(item.no) ? 'fuan-on' : '';
+
+      card.innerHTML = `
+        <div class="card-header">
+          <div>
+            <div>No.${item.no}</div>
+            <div class="category">${item.category}</div>
+          </div>
+
+          <label class="fuan-label ${fuanClass}">
+            <input type="checkbox" class="fuan-check" data-no="${item.no}" ${checked}>
+            不安
+          </label>
+        </div>
+
+        <div class="word">${escapeHtml(item.word)}</div>
+
+        <button class="toggle-desc">説明を表示</button>
+
+        <div class="description">
+          ${escapeHtml(item.description)}
+        </div>
+      `;
+
+      const btn = card.querySelector('.toggle-desc');
+      const desc = card.querySelector('.description');
+      const checkbox = card.querySelector('.fuan-check');
+      const label = card.querySelector('.fuan-label');
+
+      btn.addEventListener('click', () => {
+        desc.classList.toggle('show');
+        btn.textContent = desc.classList.contains('show')
+          ? '説明を閉じる'
+          : '説明を表示';
+      });
+
+      checkbox.addEventListener('change', () => {
+        setFuan(item.no, checkbox.checked);
+
+        if (checkbox.checked) {
+          label.classList.add('fuan-on');
+        } else {
+          label.classList.remove('fuan-on');
+
+          if (showFuanOnly) {
+            render();
+          }
+        }
+      });
+
+      wordList.appendChild(card);
+    });
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  document.getElementById('allBtn').addEventListener('click', () => {
+    showFuanOnly = false;
+    render();
+  });
+
+  document.getElementById('fuanBtn').addEventListener('click', () => {
+    showFuanOnly = true;
+    render();
+  });
+
+  searchBox.addEventListener('input', render);
+  categoryFilter.addEventListener('change', render);
+
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.body.classList.add('dark');
+      themeBtn.textContent = '☀ Light';
+    } else {
+      document.body.classList.remove('dark');
+      themeBtn.textContent = '🌙 Dark';
+    }
+  }
+
+  themeBtn.addEventListener('click', () => {
+    const current = localStorage.getItem('theme') || 'light';
+    const next = current === 'light' ? 'dark' : 'light';
+
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+  });
+
+  function initializeTheme() {
+    const savedTheme = localStorage.getItem('theme');
+
+    if (savedTheme) {
+      applyTheme(savedTheme);
+      return;
+    }
+
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    applyTheme(prefersDark ? 'dark' : 'light');
+  }
+
+  initializeTheme();
+  loadCSV();
+</script>
+
+</body>
+</html>
