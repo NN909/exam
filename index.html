@@ -15,6 +15,9 @@
     .stats{margin-bottom:12px;font-size:14px;opacity:.9}.card{background-color:var(--card-color);border:1px solid var(--border-color);border-radius:12px;padding:14px;margin-bottom:12px}.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}.category{font-size:12px;opacity:.8}.word{font-size:22px;font-weight:bold;margin:10px 0;word-break:break-word}.description{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border-color);line-height:1.6;display:none;white-space:pre-wrap}.show{display:block}.toggle-desc{margin-top:8px;width:100%}.fuan-label{display:flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap}.fuan-on{color:var(--danger-color);font-weight:bold}.hidden{display:none}
     @media (max-width:600px){.toolbar,.login-row{flex-direction:column;align-items:stretch}button{width:100%}}
   </style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 <header>
@@ -39,6 +42,7 @@
   function escapeHtml(text){return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}function base64ToArrayBuffer(base64){const binary=atob(base64),bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++){bytes[i]=binary.charCodeAt(i)}return bytes.buffer}
   document.getElementById('allBtn').addEventListener('click',()=>{showFuanOnly=false;render()});document.getElementById('fuanBtn').addEventListener('click',()=>{showFuanOnly=true;render()});unlockBtn.addEventListener('click',unlockData);passwordInput.addEventListener('keydown',event=>{if(event.key==='Enter')unlockData()});searchBox.addEventListener('input',render);categoryFilter.addEventListener('change',render);
   function applyTheme(theme){if(theme==='dark'){document.body.classList.add('dark');themeBtn.textContent='☀ Light';themeBtnLogin.textContent='☀ Light'}else{document.body.classList.remove('dark');themeBtn.textContent='🌙 Dark';themeBtnLogin.textContent='🌙 Dark'}}function toggleTheme(){const current=localStorage.getItem('theme')||'light',next=current==='light'?'dark':'light';localStorage.setItem('theme',next);applyTheme(next)}themeBtn.addEventListener('click',toggleTheme);themeBtnLogin.addEventListener('click',toggleTheme);function initializeTheme(){const savedTheme=localStorage.getItem('theme');if(savedTheme){applyTheme(savedTheme);return}const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;applyTheme(prefersDark?'dark':'light')}initializeTheme();
+  if ('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('./service-worker.js');});}
 </script>
 </body>
 </html>
